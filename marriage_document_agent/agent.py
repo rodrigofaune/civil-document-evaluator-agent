@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Optional
 
 
 class DocumentInput(BaseModel):
@@ -8,50 +8,19 @@ class DocumentInput(BaseModel):
         description="Texto plano extraído del documento de matrimonio o unión civil en formato PDF")
 
 
-class SpouseInfo(BaseModel):
-    name: str = Field(
-        description="Nombre completo del contrayente/conviviente civil")
-    rut: Optional[str] = Field(
-        description="RUT del contrayente con formato XX.XXX.XXX-X", default=None)
-    birth_date: Optional[str] = Field(
-        description="Fecha de nacimiento en formato YYYY-MM-DD", default=None)
-    nationality: Optional[str] = Field(
-        description="Nacionalidad del contrayente", default=None)
-    civil_status: Optional[str] = Field(
-        description="Estado civil anterior", default=None)
-
-
 class CertificateAnalysis(BaseModel):
     document_type: str = Field(
         description="Tipo de documento: 'Matrimonio' o 'Unión Civil'")
-    is_valid_certificate: bool = Field(
-        description="Si el documento es un certificado válido de matrimonio o unión civil")
-    folio: Optional[str] = Field(
-        description="Número de folio del certificado (ej: 500627557741)", default=None)
-    codigo_verificacion: Optional[str] = Field(
-        description="Código de verificación del certificado", default=None)
-    patrimonial_regime: Optional[str] = Field(
-        description="Régimen patrimonial: 'Sociedad Conyugal', 'Separación de Bienes', o 'Participación en los Gananciales'", default=None)
-    spouses: List[SpouseInfo] = Field(
-        description="Información de los contrayentes/convivientes civiles", default=[])
-    ceremony_date: Optional[str] = Field(
-        description="Fecha de la ceremonia/celebración en formato YYYY-MM-DD", default=None)
-    ceremony_location: Optional[str] = Field(
-        description="Circunscripción o lugar donde se realizó la ceremonia", default=None)
-    registro_number: Optional[str] = Field(
-        description="Número de inscripción del registro", default=None)
-    registro_year: Optional[str] = Field(
-        description="Año del registro", default=None)
-    civil_registry_office: Optional[str] = Field(
-        description="Oficina de registro civil (siempre 'SERVICIO DE REGISTRO CIVIL E IDENTIFICACIÓN')", default=None)
+    separacion_de_bienes: bool = Field(
+        description="True si el texto contiene 'Separación de bienes', False en caso contrario")
+    spouse_1_rut: Optional[str] = Field(
+        description="RUT del primer cónyuge/conviviente con formato XX.XXX.XXX-X", default=None)
+    spouse_2_rut: Optional[str] = Field(
+        description="RUT del segundo cónyuge/conviviente con formato XX.XXX.XXX-X", default=None)
     issuance_date: Optional[str] = Field(
         description="Fecha de emisión del certificado en formato YYYY-MM-DD", default=None)
-    issuance_time: Optional[str] = Field(
-        description="Hora de emisión del certificado", default=None)
-    additional_info: Optional[str] = Field(
-        description="Información adicional sobre régimen patrimonial u otros detalles", default=None)
-    error_message: Optional[str] = Field(
-        description="Mensaje de error si no se puede procesar el documento", default=None)
+    is_certificate_current: bool = Field(
+        description="True si la fecha de emisión está dentro de los últimos 30 días desde hoy (2025-07-28), False en caso contrario")
 
 
 root_agent = LlmAgent(
@@ -63,23 +32,29 @@ root_agent = LlmAgent(
     output_schema=CertificateAnalysis,
     output_key="certificate_analysis",
     instruction="""
-    Eres un agente especializado en analizar certificados de matrimonio y uniones civiles en Chile. Tu tarea es identificar y extraer información clave del texto plano de los documentos, como nombres, fechas, lugares y otros detalles relevantes. Utiliza tu conocimiento sobre la legislación chilena para interpretar correctamente los datos.
+    Eres un agente especializado en analizar certificados de matrimonio y uniones civiles en Chile. Tu tarea es extraer información específica del texto plano de los documentos.
     
     IMPORTANTE: Tu respuesta DEBE ser un JSON válido que cumpla exactamente con el esquema CertificateAnalysis definido.
     
-    Si encuentras información que no puedes procesar, indícalo claramente en el campo error_message. Tu objetivo es proporcionar una comprensión clara y precisa del contenido del documento, asegurándote de que todos los detalles sean correctos y relevantes para el contexto legal chileno.
+    Debes extraer exactamente estos campos:
     
-    Si el documento no es un certificado de matrimonio o unión civil, marca is_valid_certificate como false e informa en error_message por qué no es relevante para tu tarea.
+    1. document_type: Identifica si es "Matrimonio" o "Unión Civil"
     
-    Si el documento es un certificado de matrimonio o unión civil válido:
-    - Identifica si es "Matrimonio" o "Unión Civil" 
-    - Extrae información de los contrayentes/convivientes civiles
-    - Determina el régimen patrimonial:
-      * Para Matrimonio: puede ser "Sociedad Conyugal" (por defecto), "Separación de Bienes", o "Participación en los Gananciales"
-      * Para Unión Civil: por defecto es "Separación de Bienes" a menos que se especifique "comunidad de bienes"
-    - Extrae fechas, lugares, números de registro y demás información estructurada
+    2. separacion_de_bienes: Determina según el tipo de documento:
+       - Para Matrimonio: True solo si aparece explícitamente "Separación de bienes" en el texto
+       - Para Unión Civil: SIEMPRE True (ya que por ley el régimen por defecto es separación de bienes, sin importar si aparece "comunidad de bienes" o "no pactaron régimen")
     
-    Asegúrate de que la información sea precisa y completa, y que cumpla con los estándares legales chilenos.
+    3. spouse_1_rut y spouse_2_rut: Extrae los RUTs de ambos cónyuges/convivientes en formato XX.XXX.XXX-X
+    
+    4. issuance_date: Fecha de emisión del certificado en formato YYYY-MM-DD
+    
+    5. is_certificate_current: Calcula si la fecha de emisión está dentro de los últimos 30 días desde hoy:
+       - True si la diferencia es 30 días o menos
+       - False si la diferencia es mayor a 30 días
+       - Ejemplo: si issuance_date es 2025-05-05 y hoy es 2025-07-28, son más de 30 días, entonces False
+       - Ejemplo: si issuance_date es 2025-07-15 y hoy es 2025-07-28, son 13 días, entonces True
+    
+    Asegúrate de que la información sea precisa y que todos los campos obligatorios estén completos.
     """,
     tools=[],
 )
