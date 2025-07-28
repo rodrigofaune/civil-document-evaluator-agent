@@ -1,26 +1,59 @@
+"""
+Marriage Document Agent for analyzing Chilean marriage and civil union certificates.
+
+This module provides an AI agent that can extract specific information from
+marriage and civil union certificate documents in Chile, including document type,
+property regime, spouse information, and certificate validity.
+"""
+
+from typing import Optional
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class DocumentInput(BaseModel):
+    """
+    Input schema for the marriage document agent.
+
+    This class defines the expected input format for analyzing
+    marriage and civil union certificates.
+    """
+
     plain_text_document: str = Field(
-        description="Texto plano extraído del documento de matrimonio o unión civil en formato PDF")
+        description="Texto plano extraído del documento de matrimonio o unión civil en formato PDF"
+    )
 
 
 class CertificateAnalysis(BaseModel):
+    """
+    Output schema for marriage and civil union certificate analysis.
+
+    This class defines the structure of the extracted information from
+    Chilean marriage and civil union certificates, including document type,
+    property regime, spouse information, and certificate validity.
+    """
+
     document_type: str = Field(
-        description="Tipo de documento: 'Matrimonio' o 'Unión Civil'")
+        description="Tipo de documento: 'Matrimonio' o 'Unión Civil'"
+    )
     separacion_de_bienes: bool = Field(
-        description="True si el texto contiene 'Separación de bienes', False en caso contrario")
+        description="True si el texto contiene 'Separación de bienes', False en caso contrario"
+    )
     spouse_1_rut: Optional[str] = Field(
-        description="RUT del primer cónyuge/conviviente con formato XX.XXX.XXX-X", default=None)
+        description="RUT del primer cónyuge/conviviente con formato XX.XXX.XXX-X",
+        default=None,
+    )
     spouse_2_rut: Optional[str] = Field(
-        description="RUT del segundo cónyuge/conviviente con formato XX.XXX.XXX-X", default=None)
+        description="RUT del segundo cónyuge/conviviente con formato XX.XXX.XXX-X",
+        default=None,
+    )
     issuance_date: Optional[str] = Field(
-        description="Fecha de emisión del certificado en formato YYYY-MM-DD", default=None)
+        description="Fecha de emisión del certificado en formato YYYY-MM-DD",
+        default=None,
+    )
     is_certificate_current: bool = Field(
-        description="True si la fecha de emisión está dentro de los últimos 30 días desde hoy (2025-07-28), False en caso contrario")
+        description="True si la fecha de emisión está dentro de los últimos 30 días desde hoy (2025-07-28), False en caso contrario"
+    )
 
 
 root_agent = LlmAgent(
