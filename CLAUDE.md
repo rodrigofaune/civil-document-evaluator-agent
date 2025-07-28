@@ -20,54 +20,42 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ### Running the Application
 ```bash
-# Run in simple mode (single agent)
-python main.py
-
-# Run in team mode (multi-agent system)
-python main.py --mode team
-
-# Alternative: Use ADK web interface
+# Use ADK web interface (primary method)
 adk web
+
+# Note: Command line interface not currently implemented
 ```
 
 ### Environment Configuration
-The application requires a `.env` file in the `multi_tool_agent/` directory:
+The application requires a `.env` file in the `marriage_document_agent/` directory:
 ```
 GOOGLE_API_KEY=your_google_api_key_here
 ```
 
 ## Architecture
 
-### Agent Modes
-The system supports two operational modes:
+### Current Implementation
+Currently implemented as a single agent:
 
-1. **Simple Mode**: Single agent (`civil_union_analyzer`) with three tools:
-   - `read_pdf_certificate`: Extracts text from PDF files
-   - `get_civil_union_info`: Retrieves reference information about Chilean civil unions
-   - `analyze_certificate`: Analyzes certificate content
-
-2. **Team Mode**: Six specialized agents working collaboratively:
-   - `document-reader`: PDF text extraction
-   - `info-extractor`: Structured information extraction
-   - `union-analyzer`: Union type determination
-   - `regime-analyzer`: Patrimonial regime analysis
-   - `final-analysis`: Comprehensive summary creation
-   - `civil-union-analyzer-root`: Main orchestration agent
+- **marriage_document_agent**: Analyzes marriage and civil union certificates in Chile
+  - Specialized in identifying and extracting key information from documents
+  - Uses Gemini 2.0 Flash model
+  - Configured for Chilean legal context and Spanish language
+  - Currently has no tools defined (tools array is empty)
 
 ### Key Components
 
-- **main.py**: Entry point with argument parsing for mode selection
-- **multi_tool_agent/agent.py**: Core agent implementation with all tool functions and agent definitions
+- **marriage_document_agent/agent.py**: Main agent implementation using Google ADK
 - **documents/**: Directory containing certificate PDFs for analysis
-- **aboutCivilUnionInChile.txt**: Reference document with Chilean civil union legal information
+- **README.md**: Comprehensive project documentation
+- **GEMINI.md, adk-guide.md, about-matrimonio-chile.md**: Additional reference documentation
 
-### Data Models
-The system uses Pydantic models for structured data:
-- `ReadPdfResult`: PDF text extraction results
-- `AnalyzeCertificateResult`: Certificate analysis outcomes
-- `ExtractCertificateInfoResult`: Basic certificate information
-- `AnalyzeUnionTypeResult`/`AnalyzeRegimeTypeResult`: Specialized analysis results
-- `FinalAnalysisResult`: Comprehensive analysis summary
+### Agent Configuration
+The agent is configured with Spanish instructions for analyzing Chilean marriage and civil union certificates. It focuses on:
+- Extracting key information like names, dates, places
+- Interpreting data within Chilean legal context
+- Identifying document relevance and validity
+- Providing structured and accurate information
 
 ### Legal Context
 The system analyzes two types of unions under Chilean law:
@@ -83,15 +71,19 @@ The system analyzes two types of unions under Chilean law:
 
 ```
 /
-├── multi_tool_agent/
-│   ├── agent.py          # Main agent implementation and tool functions
+├── marriage_document_agent/
+│   ├── agent.py          # Main agent implementation using Google ADK
 │   ├── __init__.py       # Package initialization
 │   └── .env              # Environment variables (Google API key)
 ├── documents/            # Certificate PDFs for analysis
-├── main.py              # Application entry point
-├── requirements.txt     # Python dependencies
-├── aboutCivilUnionInChile.txt  # Legal reference information
-└── README.md            # Project documentation
+├── venv/                 # Python virtual environment
+├── requirements.txt      # Python dependencies
+├── README.md             # Project documentation
+├── CLAUDE.md             # This file - guidance for Claude Code
+├── GEMINI.md             # Gemini-specific documentation
+├── adk-guide.md          # ADK usage guide
+├── about-matrimonio-chile.md  # Legal reference information
+└── civil_union_analyzer.log   # Application logs
 ```
 
 ## Testing Certificates
@@ -103,8 +95,6 @@ The system includes three sample certificates for testing:
 
 ## Dependencies
 
-- `google-adk>=0.1.0`: Google Agent Development Kit
-- `google-generativeai>=0.3.0`: Google Gemini API client
-- `PyPDF2>=3.0.0`: PDF text extraction
-- `python-dotenv>=1.0.0`: Environment variable management
-- `litellm>=1.0.0`: Optional multi-model support
+- `google-adk[database]==0.3.0`: Google Agent Development Kit with database support
+- `google-generativeai==0.8.5`: Google Gemini API client
+- `python-dotenv==1.0.1`: Environment variable management
